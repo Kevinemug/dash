@@ -1,9 +1,39 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Card, CardBody, CardTitle, CardSubtitle, Table } from "reactstrap";
+import {
+  Card,
+  CardBody,
+  CardTitle,
+  CardSubtitle,
+  Table,
+  FormGroup,
+  Input,
+  Label,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  Form,
+  Button,
+} from "reactstrap";
 
 const AppointmentMessage = () => {
   const [messages, setMessages] = useState([]);
+  const [showModal, setShowModal] = useState(null);
+  const [currentMedicine, setCurrentMedicine] = useState({
+    medicineName: "",
+    description: "",
+    categories: "",
+    quantity: "",
+    disease: [],
+  });
+  const [updatedMedicine, setUpdatedMedicine] = useState({
+    medicineName: "",
+    description: "",
+    categories: "",
+    quantity: "",
+    disease: [],
+  });
+  const [selectedMedicine, setSelectedMedicine] = useState(null);
 
   useEffect(() => {
     const config = {
@@ -35,6 +65,7 @@ const AppointmentMessage = () => {
         config
       )
       .then((response) => {
+        alert("This action cannot be undone,are you sure you want to delete this medecine?")
         setMessages(messages.filter((item) => item._id !== id));
       })
       .catch((error) => {
@@ -45,9 +76,9 @@ const AppointmentMessage = () => {
     backgroundColor: "blue",
     color: "white",
   });
-  const handleClick = (id, name, email) => {
+  const handleClick = (id, name, email, item) => {
     const confirmed = window.confirm(
-      `Are you sure you want to confirm ${name}?`
+      `Are you sure you want to update this medecine?`
     );
 
     if (confirmed) {
@@ -62,9 +93,123 @@ const AppointmentMessage = () => {
       });
     }
   };
+  const handleEdit = (id, updatedData) => {
+    const config = {
+      headers: {
+        Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY0MjI5YWFiNTE4NDc0ZTMxMWNiNzQyZSIsImlhdCI6MTY3OTk5MTE5MCwiZXhwIjoxNjgyNTgzMTkwfQ.ehi0d3EDjDTbxeORbMY9B-Wj00R_q9zmOPlJHyAEXgw`,
+      },
+    };
+    axios
+      .put(
+        `https://health-savvy.onrender.com/api/pharmacy/dashboard/medicine/${id}`,
+        updatedMedicine,
+        config
+      )
+      .then((response) => {
+        setMessages(
+          messages.map((item) =>
+            item._id === id ? { ...item, ...updatedData } : item
+          )
+        );
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+    const medicine = messages.find((item) => item._id === id);
+    setCurrentMedicine(medicine);
+    setShowModal(true);
+  };
+  const handleFormSubmit = (id, updatedData) => {
+    handleEdit(id, updatedData);
+    // hide the form after submission
+    setEditItemId(null);
+  };
+  const [editItemId, setEditItemId] = useState(null);
+  const [editFormData, setEditFormData] = useState(null);
+
+  const handleEditClick = (id, item) => {
+    setEditItemId(id);
+    setEditFormData(item);
+  };
+
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
+    setEditFormData({ ...editFormData, [name]: value });
+  };
 
   return (
     <>
+      <Modal isOpen={showModal} t>
+        <ModalHeader>Edit Medicine</ModalHeader>
+        <ModalBody>
+          <Form >
+            <FormGroup>
+              <Label for="medicineName">Medicine Name</Label>
+              <Input
+                type="text"
+                name="medicineName"
+                id="medicineName"
+                value={currentMedicine.medicineName}
+                onChange={handleInputChange}
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label for="description">Description</Label>
+              <Input
+                type="text"
+                name="description"
+                id="description"
+                value={currentMedicine.description}
+                onChange={handleInputChange}
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label for="medicineId">ID</Label>
+              <Input
+                type="text"
+                name="medicineId"
+                id="medicineId"
+                value={currentMedicine.medicineId}
+                onChange={handleInputChange}
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label for="categories">Categories</Label>
+              <Input
+                type="text"
+                name="categories"
+                id="categories"
+                value={currentMedicine.categories}
+                onChange={handleInputChange}
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label for="quantity">Number in Store</Label>
+              <Input
+                type="number"
+                name="quantity"
+                id="quantity"
+                value={currentMedicine.quantity}
+                onChange={handleInputChange}
+              />
+            </FormGroup>
+            <FormGroup>
+              <Label for="disease">Disease</Label>
+              <Input
+                type="text"
+                name="disease"
+                id="disease"
+                value={currentMedicine.disease}
+                onChange={handleInputChange}
+              />
+            </FormGroup>
+            <Button color="primary" type="submit" onClick={handleClick}>
+              Save Changes
+            </Button>
+          </Form>
+        </ModalBody>
+      </Modal>
+
       <div>
         <Card style={{ width: "1420px", marginLeft: "-80px" }}>
           <CardBody>
@@ -108,12 +253,10 @@ const AppointmentMessage = () => {
                     <td>{item.medicineId}</td>
                     <td>{item.categories}</td>
                     <td>{item.quantity}</td>
-                    <td>{item.disease[0] + item.disease[1]} </td>
+                    <td>{item.disease[0]} </td>
                     <td>
                       <button
-                        // onClick={() =>
-                        //   handleClick(item._id, item.hospitalName, item.email)
-                        // }
+                        onClick={() => handleEdit(item._id)}
                         style={
                           buttonStyles[item._id] || {
                             backgroundColor: "dodgerblue",
@@ -132,7 +275,7 @@ const AppointmentMessage = () => {
                         class="btn btn-danger"
                         onClick={() => handleDecline(item._id)}
                       >
-                        Decline
+                        Delete
                       </button>
                     </td>
                   </tr>
